@@ -15,7 +15,6 @@
         button { background: #28a745; color: white; border: none; font-weight: 600; cursor: pointer; }
         button:hover { background: #218838; }
         #result { margin-top: 20px; font-size: 1.5rem; font-weight: bold; text-align: center; }
-        #debug { margin-top: 10px; font-size: 0.8rem; color: #666; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -24,11 +23,10 @@
     <input type="text" id="deviceId" placeholder="Device ID" />
     <button onclick="generateKey()">Get Product Key</button>
     <div id="result"></div>
-    <div id="debug"></div>
 
     <script>
-        // Replace with your Worker URL if different
-        const WORKER_URL = "https://ussd-activation.mugomania.workers.dev";
+        // The same salt used in the app's LicenseManager.kt
+        const SECRET_SALT = "Veritas2026USSDAssistant!";
 
         async function generateKey() {
             const deviceId = document.getElementById("deviceId").value.trim();
@@ -37,30 +35,16 @@
                 return;
             }
 
-            const debugDiv = document.getElementById("debug");
-            debugDiv.innerText = "Fetching...";
+            // SHA‑256 via Web Crypto API
+            const message = `${deviceId}-${SECRET_SALT}`;
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const key = hashHex.substring(0, 6).toUpperCase();
 
-            try {
-                const response = await fetch(`${WORKER_URL}?deviceId=${encodeURIComponent(deviceId)}`);
-                debugDiv.innerText = `Status: ${response.status} ${response.statusText}`;
-
-                if (!response.ok) {
-                    document.getElementById("result").innerText = `Server error (${response.status}). Please try again.`;
-                    return;
-                }
-
-                const data = await response.json();
-                debugDiv.innerText += "\nResponse: " + JSON.stringify(data);
-
-                if (data.key) {
-                    document.getElementById("result").innerText = "Your product key: " + data.key;
-                } else {
-                    document.getElementById("result").innerText = "Error: " + (data.error || "Unknown error");
-                }
-            } catch (err) {
-                debugDiv.innerText += "\nError: " + err.message;
-                document.getElementById("result").innerText = "Network error – please try again.";
-            }
+            document.getElementById("result").innerText = "Your product key: " + key;
         }
     </script>
 </body>
