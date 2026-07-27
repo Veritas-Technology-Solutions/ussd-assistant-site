@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Key Generator – USSDAssistant</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 400px; margin: 50px auto; padding: 20px;
+            background: #f8fafc; color: #1e293b;
+        }
+        h2 { color: #28a745; }
+        label, input, button { display: block; width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+        button { background: #28a745; color: white; border: none; font-weight: 600; cursor: pointer; }
+        button:hover { background: #218838; }
+        #result { margin-top: 20px; font-size: 1.5rem; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+    <h2>Admin Key Generator</h2>
+    <p>Enter the user's Device ID and your admin passcode to instantly generate a product key.</p>
+    <label for="passcode">Admin Passcode</label>
+    <input type="password" id="passcode" placeholder="Your secret passcode" />
+    <label for="deviceId">Device ID</label>
+    <input type="text" id="deviceId" placeholder="User's Device ID" />
+    <button onclick="generateKey()">Generate Key</button>
+    <div id="result"></div>
+
+    <script>
+        // Replace with your Cloudflare Worker URL
+        const WORKER_URL = "https://ussd-activation.veritas.workers.dev";
+        const ADMIN_PASSCODE = "YOUR_ADMIN_PASSCODE";   // change this to a secret phrase
+
+        async function generateKey() {
+            const passcode = document.getElementById("passcode").value.trim();
+            const deviceId = document.getElementById("deviceId").value.trim();
+
+            if (passcode !== ADMIN_PASSCODE) {
+                document.getElementById("result").innerText = "Invalid admin passcode.";
+                return;
+            }
+            if (!deviceId) {
+                document.getElementById("result").innerText = "Please enter a Device ID.";
+                return;
+            }
+
+            const response = await fetch(`${WORKER_URL}?deviceId=${encodeURIComponent(deviceId)}`);
+            const data = await response.json();
+            if (data.key) {
+                document.getElementById("result").innerText = "Product key: " + data.key;
+            } else {
+                document.getElementById("result").innerText = "Error generating key.";
+            }
+        }
+    </script>
+</body>
+</html>
